@@ -5,6 +5,7 @@ import { useForm, Controller, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
+import { signIn } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { Icons } from "@/components/Icons";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { setCookie } from "cookies-next";
+import { useSession } from "next-auth/react";
 
 interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {}
 export type LoginFormValues = z.infer<typeof loginFormSchema>;
@@ -32,7 +34,8 @@ export const loginFormSchema = z.object({
 });
 
 export function LoginForm({ className, ...props }: UserAuthFormProps) {
-  const [isLoading, setIsLoading] = React.useState<boolean>(false);
+  const { data: session, status } = useSession();
+  console.log("🚀 ~ file: LoginForm.tsx:38 ~ LoginForm ~ session:", session);
   const router = useRouter();
   const {
     control,
@@ -47,22 +50,11 @@ export function LoginForm({ className, ...props }: UserAuthFormProps) {
   });
 
   const onSubmit: SubmitHandler<LoginFormValues> = async (data) => {
-    //TODO: 벡엔드에 로그인 요청
-    const response = await axios.post("http://localhost:5000/auth/login", data);
-    const { accessToken: token, user: userInfo } = response.data;
-
-    setCookie("accessToken", token.accessToken, {
-      maxAge: 60 * 60 * 24 * 7,
-      path: "/",
-      //   httpOnly: true,
+    await signIn("credentials", {
+      email: data.email,
+      password: data.password,
+      callbackUrl: "/",
     });
-
-    setCookie("userInfo", JSON.stringify(userInfo), {
-      maxAge: 60 * 60 * 24 * 7,
-      path: "/",
-      //   httpOnly: true,
-    });
-    router.push("/");
   };
 
   return (
@@ -83,7 +75,6 @@ export function LoginForm({ className, ...props }: UserAuthFormProps) {
                   autoCapitalize="none"
                   autoComplete="email"
                   autoCorrect="off"
-                  disabled={isLoading}
                 />
               )}
             />
@@ -97,24 +88,14 @@ export function LoginForm({ className, ...props }: UserAuthFormProps) {
               name="password"
               control={control}
               render={({ field }) => (
-                <Input
-                  {...field}
-                  id="password"
-                  type="password"
-                  disabled={isLoading}
-                />
+                <Input {...field} id="password" type="password" />
               )}
             />
             {errors.password && (
               <p className=" text-red-600">{errors.password.message}</p>
             )}
           </div>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading && (
-              <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-            )}
-            Log in with Email
-          </Button>
+          <Button type="submit">Log in with Email</Button>
         </div>
       </form>
       <div className="relative">
@@ -127,12 +108,11 @@ export function LoginForm({ className, ...props }: UserAuthFormProps) {
           </span>
         </div>
       </div>
-      <Button variant="outline" type="button" disabled={isLoading}>
-        {isLoading ? (
-          <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-        ) : (
-          <Icons.google className="mr-2 h-4 w-4" />
-        )}
+      <Button
+        onClick={() => signIn("google", { callbackUrl: "/" })}
+        variant="outline"
+        type="button"
+      >
         Google
       </Button>
     </div>

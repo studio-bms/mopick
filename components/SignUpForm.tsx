@@ -64,7 +64,7 @@ export function SignUpForm({ className, ...props }: UserAuthFormProps) {
   const onSubmit: SubmitHandler<UserAuthFormValues> = async (data) => {
     //TODO: 벡엔드에 회원가입 요청
     const { email, password, name, phone } = data;
-    await axios.post("http://localhost:5000/auth/signup", {
+    await axios.post("http://localhost:3030/auth/signup", {
       email,
       password,
       name,
